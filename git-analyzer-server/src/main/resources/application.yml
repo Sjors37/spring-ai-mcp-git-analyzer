@@ -1,0 +1,12 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: git-analyzer-server
+  ai:
+    mcp:
+      server:
+        protocol: STREAMABLE
+        name: git-analyzer-mcp-server
+        version: 1.0.0
