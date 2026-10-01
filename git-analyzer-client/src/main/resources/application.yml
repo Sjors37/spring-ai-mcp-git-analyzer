@@ -12,4 +12,4 @@ spring:
         streamable-http:
           connections:
             gitanalyzer:
-              url: http://localhost:8081
+              url: ${MCP_SERVER_URL:http://localhost:8081}
