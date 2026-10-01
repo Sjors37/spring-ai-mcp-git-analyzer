@@ -1,0 +1,22 @@
+services:
+  git-analyzer-server:
+    build: ./git-analyzer-server
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8081"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  git-analyzer-client:
+    build: ./git-analyzer-client
+    ports:
+      - "8080:8080"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_SERVER_URL=http://git-analyzer-server:8081
+    depends_on:
+      git-analyzer-server:
+        condition: service_healthy
