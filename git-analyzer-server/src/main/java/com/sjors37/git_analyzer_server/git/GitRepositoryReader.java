@@ -36,33 +36,40 @@ public class GitRepositoryReader {
     }
 
     public RepoStats getRepoStats(String repoPath) throws IOException, org.eclipse.jgit.api.errors.GitAPIException {
-        try (Git git = Git.open(new File(repoPath))) {
+        try (Git git = Git.open(new File(repoPath));
+             RevWalk revWalk = new RevWalk(git.getRepository())) {
             Repository repository = git.getRepository();
             int totalCommits = 0;
             Set<String> contributors = new HashSet<>();
             Map<String, Integer> fileChangeCounts = new HashMap<>();
 
-            try (RevWalk revWalk = new RevWalk(repository)) {
-                for (RevCommit commit : git.log().call()) {
-                    totalCommits++;
-                    contributors.add(commit.getAuthorIdent().getName());
-
-                    if (commit.getParentCount() > 0) {
-                        RevCommit parent = revWalk.parseCommit(commit.getParent(0).getId());
-                        for (DiffEntry diff : diffBetween(repository, parent, commit)) {
-                            fileChangeCounts.merge(diff.getNewPath(), 1, Integer::sum);
-                        }
-                    }
-                }
+            for (RevCommit commit : git.log().call()) {
+                totalCommits++;
+                contributors.add(commit.getAuthorIdent().getName());
+                countFileChanges(repository, revWalk, commit, fileChangeCounts);
             }
 
-            Map<String, Integer> topFiles = fileChangeCounts.entrySet().stream()
-                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                    .limit(5)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
-
-            return new RepoStats(totalCommits, contributors.size(), topFiles);
+            return new RepoStats(totalCommits, contributors.size(), topChangedFiles(fileChangeCounts, 5));
         }
+    }
+
+    private void countFileChanges(Repository repository, RevWalk revWalk, RevCommit commit,
+                                  Map<String, Integer> fileChangeCounts) throws IOException {
+        if (commit.getParentCount() == 0) {
+            return;
+        }
+
+        RevCommit parent = revWalk.parseCommit(commit.getParent(0).getId());
+        for (DiffEntry diff : diffBetween(repository, parent, commit)) {
+            fileChangeCounts.merge(diff.getNewPath(), 1, Integer::sum);
+        }
+    }
+
+    private Map<String, Integer> topChangedFiles(Map<String, Integer> fileChangeCounts, int limit) {
+        return fileChangeCounts.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(limit)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
     }
 
     private List<DiffEntry> diffBetween(Repository repository, RevCommit oldCommit, RevCommit newCommit) throws IOException {

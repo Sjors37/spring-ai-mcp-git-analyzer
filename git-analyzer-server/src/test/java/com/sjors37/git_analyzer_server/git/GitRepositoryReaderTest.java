@@ -49,8 +49,8 @@ class GitRepositoryReaderTest {
         List<CommitInfo> commits = gitRepositoryReader.getRecentCommits(repoPath, 10);
 
         assertThat(commits).hasSize(4);
-        assertThat(commits.get(0).message()).isEqualTo("Update readme");
-        assertThat(commits.get(3).message()).isEqualTo("Initial commit");
+        assertThat(commits.getFirst().message()).isEqualTo("Update readme");
+        assertThat(commits.getLast().message()).isEqualTo("Initial commit");
     }
 
     @Test
@@ -58,7 +58,7 @@ class GitRepositoryReaderTest {
         List<CommitInfo> commits = gitRepositoryReader.getRecentCommits(repoPath, 2);
 
         assertThat(commits).hasSize(2);
-        assertThat(commits.get(0).message()).isEqualTo("Update readme");
+        assertThat(commits.getFirst().message()).isEqualTo("Update readme");
         assertThat(commits.get(1).message()).isEqualTo("Update app.txt");
     }
 
